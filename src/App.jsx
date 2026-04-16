@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./App.css";
 
 function App() {
   const [description, setDescription] = useState("");
@@ -30,7 +31,7 @@ function App() {
 
   return (
     <div className="app">
-      <h1>Expense Tracker</h1>
+      <h1>Expense-Tracker</h1>
       <p className="subtitle">Track your spending in real-time</p>
 
       <div className="total-card">
