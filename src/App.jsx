@@ -1,38 +1,141 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
+// 🔥 Firebase
+import { db, auth } from "./firebase";
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
+import {
+  onAuthStateChanged,
+  signOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
+
 function App() {
+  // 🔹 Expense states
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Food");
   const [expenses, setExpenses] = useState([]);
 
-  const addExpense = () => {
+  // 🔹 Auth state
+  const [user, setUser] = useState(null);
+
+  // 🔹 Login form state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // ✅ AUTH LISTENER
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // ✅ REAL-TIME EXPENSES (only when logged in)
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = onSnapshot(
+      collection(db, "users", user.uid, "expenses"),
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setExpenses(data);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // ✅ ADD EXPENSE
+  const addExpense = async () => {
     if (!description || !amount) return;
 
-    const newExpense = {
-      id: Date.now(),
+    await addDoc(collection(db, "users", user.uid, "expenses"), {
       description,
       amount: parseFloat(amount),
       category,
-    };
+      createdAt: new Date(),
+    });
 
-    setExpenses([newExpense, ...expenses]);
     setDescription("");
     setAmount("");
     setCategory("Food");
   };
 
-  const deleteExpense = (id) => {
-    setExpenses(expenses.filter((e) => e.id !== id));
+  // ✅ DELETE EXPENSE
+  const deleteExpense = async (id) => {
+    await deleteDoc(doc(db, "users", user.uid, "expenses", id));
   };
 
+  // ✅ LOGIN
+  const login = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // ✅ SIGNUP
+  const signup = async () => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // ✅ LOGOUT
+  const logout = async () => {
+    await signOut(auth);
+  };
+
+  // ✅ TOTAL
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
+  // 🔐 IF NOT LOGGED IN → SHOW LOGIN
+  if (!user) {
+    return (
+      <div className="app">
+        <h2>Login / Signup</h2>
+
+        <input
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <button onClick={login}>Login</button>
+        <button onClick={signup}>Signup</button>
+      </div>
+    );
+  }
+
+  // ✅ MAIN APP UI
   return (
     <div className="app">
-      <h1>Expense-Tracker</h1>
+      <h1>Expense Tracker</h1>
       <p className="subtitle">Track your spending in real-time</p>
+
+      <button onClick={logout}>Logout</button>
 
       <div className="total-card">
         <div className="total-label">Total Spent</div>
@@ -41,19 +144,22 @@ function App() {
 
       <div className="form-card">
         <h2>Add Expense</h2>
+
         <div className="form">
           <input
-            placeholder="Description (e.g. Coffee)"
+            placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
+
           <div className="form-row">
             <input
               type="number"
-              placeholder="Amount (₹)"
+              placeholder="Amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
             />
+
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -63,6 +169,7 @@ function App() {
               ))}
             </select>
           </div>
+
           <button onClick={addExpense}>+ Add Expense</button>
         </div>
       </div>
@@ -70,9 +177,8 @@ function App() {
       {expenses.length > 0 && <p className="list-header">Recent Expenses</p>}
 
       <ul className="list">
-        {expenses.length === 0 && (
-          <p className="empty">No expenses yet. Add one above!</p>
-        )}
+        {expenses.length === 0 && <p className="empty">No expenses yet</p>}
+
         {expenses.map((expense) => (
           <li key={expense.id} className="item">
             <div className="item-left">
@@ -87,13 +193,16 @@ function App() {
                         ? "📄"
                         : "💸"}
               </div>
+
               <div>
                 <div className="item-desc">{expense.description}</div>
                 <div className="cat">{expense.category}</div>
               </div>
             </div>
+
             <div className="row-right">
               <span className="amount">₹{expense.amount.toFixed(2)}</span>
+
               <button className="del" onClick={() => deleteExpense(expense.id)}>
                 ✕
               </button>
