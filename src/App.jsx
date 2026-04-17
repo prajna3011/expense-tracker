@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import "./App.css";
-import Login from "./login"; // ✅ ADD THIS
+import Login from "./Login"; // ✅ ADD THIS
 
 // 🔥 Firebase
 import { db, auth } from "./firebase";

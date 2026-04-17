@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "./login.css"; // ✅ IMPORTANT: this connects your CSS
+import "./Login.css"; // ✅ IMPORTANT: this connects your CSS
 
 // 🔥 Firebase Auth
 import { auth } from "./firebase";
