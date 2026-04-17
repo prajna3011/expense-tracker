@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import "./App.css";
+import Login from "./login"; // ✅ ADD THIS
 
 // 🔥 Firebase
 import { db, auth } from "./firebase";
@@ -10,12 +11,7 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
-import {
-  onAuthStateChanged,
-  signOut,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-} from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 function App() {
   // 🔹 Expense states
@@ -27,10 +23,6 @@ function App() {
   // 🔹 Auth state
   const [user, setUser] = useState(null);
 
-  // 🔹 Login form state
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
   // ✅ AUTH LISTENER
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -39,7 +31,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // ✅ REAL-TIME EXPENSES (only when logged in)
+  // ✅ REAL-TIME EXPENSES
   useEffect(() => {
     if (!user) return;
 
@@ -78,24 +70,6 @@ function App() {
     await deleteDoc(doc(db, "users", user.uid, "expenses", id));
   };
 
-  // ✅ LOGIN
-  const login = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  // ✅ SIGNUP
-  const signup = async () => {
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
   // ✅ LOGOUT
   const logout = async () => {
     await signOut(auth);
@@ -104,29 +78,9 @@ function App() {
   // ✅ TOTAL
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-  // 🔐 IF NOT LOGGED IN → SHOW LOGIN
+  // 🔐 SHOW LOGIN PAGE (THIS IS THE KEY FIX)
   if (!user) {
-    return (
-      <div className="app">
-        <h2>Login / Signup</h2>
-
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <button onClick={login}>Login</button>
-        <button onClick={signup}>Signup</button>
-      </div>
-    );
+    return <Login />;
   }
 
   // ✅ MAIN APP UI
